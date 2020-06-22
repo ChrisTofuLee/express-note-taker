@@ -3,9 +3,10 @@ const path = require("path");
 const fs = require("fs");
 const { promisify } = require("util");
 const readFileAsync = promisify(fs.readFile);
+const { v4: uuidv4 } = require("uuid");
 
 const writeFileAsync = promisify(fs.writeFile);
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 const app = express();
 
@@ -22,8 +23,6 @@ app.set({
 
 const cssFile = (req, res) => {
   const filePath = path.join(__dirname, "/public/css/styles.css");
-  console.log(req.body);
-  console.log(filePath);
   res.sendFile(filePath);
 };
 const jsFile = (req, res) => {
@@ -64,8 +63,7 @@ const getNotes = async (req, res) => {
   res.json(notes);
 };
 const addId = (data) => {
-  let id = data.length;
-  id++;
+  let id = uuidv4();
   return id;
 };
 //create note then add it onto the notes page
@@ -91,20 +89,24 @@ const deleteNotes = async (req, res) => {
   const notesData = await readFileAsync(notesFilePath, "utf-8");
   const parsedNotes = JSON.parse(notesData);
   //add function to delete notes by id number
-  parsedNotes.splice(parsedNotes[req.params.id], 1);
+  const removeValue = parsedNotes
+    .map((item) => {
+      return item.id;
+    })
+    .indexOf(req.params.id);
+  parsedNotes.splice(removeValue, 1);
   await writeFileAsync(notesFilePath, JSON.stringify(parsedNotes));
   res.sendFile(filePath);
-  //or should it be serveNotesFile(req, res)
 };
 
 // ROUTES
 app.get("/", serveIndexFile); // load homepage
 app.get("/notes", serveNotesFile); //load notes
 // app.get("/notes/:id", notesById);
-app.get("/public", cssFile);
-app.get("/public", jsFile);
-// app.get("public/css/styles.css", cssFile);
-// app.get("public/js/index.js", jsFile);
+// app.get("/public", cssFile);
+// app.get("/public", jsFile);
+app.get("public/css/styles.css", cssFile);
+app.get("public/js/index.js", jsFile);
 app.get("/api/notes", getNotes); //read db.json file
 app.post("/api/notes", createNotes); //receive new note and push to db.json
 app.delete("/api/notes/:id", deleteNotes); // delete  selected notes
@@ -112,3 +114,8 @@ app.delete("/api/notes/:id", deleteNotes); // delete  selected notes
 app.listen(PORT, () => {
   console.log(`Server listening on: http://localhost:${PORT}`);
 });
+
+// get index of object with id using req.params.id from delete route
+// const removeValue = array.map((item) => { return item.id; }).indexOf(req.params.id);
+// remove object
+// array.splice(removeValue, 1);
